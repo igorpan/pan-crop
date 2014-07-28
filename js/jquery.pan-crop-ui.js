@@ -19,17 +19,18 @@
      *
      * submitCropData       : string|false        [OPTIONAL]; Defaults to false. If a string is provided, cropper will add
      *                                                        a hidden input field named after that string on form submit.
-     *                                                        Field will contain a json object with structure:
+     *                                                        Field will contain a json object containing data to handle serverside
+     *                                                        croping:
      *                                                        {
      *                                                            s : float   (scale)
-     *                                                            w : integer (width)
-     *                                                            h : integer (height)
-     *                                                            x1: integer (x coordinate of top left corner),
-     *                                                            y1: integer (y coordinate of top left corner),
-     *                                                            originalSize: {
-     *                                                                w: integer (original image width),
-     *                                                                h: integer (original image height)
-     *                                                            } 
+     *                                                            w : integer (width (if croping after scale))
+     *                                                            h : integer (height (if croping after scale))
+     *                                                            sw: integer (width (if croping before scale))
+     *                                                            sh: integer (height (if croping before scale))
+     *                                                            x : integer (x coordinate of top left corner (if croping after scale))
+     *                                                            y : integer (y coordinate of top left corner (if croping after scale))
+     *                                                            sx: integer (x coordinate of top left corner (if croping before scale))
+     *                                                            sy: integer (y coordinate of top left corner (if croping before scale))
      *                                                        }
      */
     $.fn.panCropUi = function(method) {
@@ -82,7 +83,7 @@
                                         '<input name="' 
                                         + settings.submitCropData 
                                         + '" type="hidden" value=\'' 
-                                        + JSON.stringify($image.panCrop.crop) 
+                                        + JSON.stringify($image.panCrop('getCropData')) 
                                         + '\'>'
                                     );
                                 });

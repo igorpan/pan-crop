@@ -4,15 +4,15 @@
   </head>
   <body>
     <div id="image-container"></div>
-    <form action="server/php_server_example.php" method="POST" enctype="multipart/form-data">
+    <form action="php_server_example.php" method="POST" enctype="multipart/form-data">
       <input name="image" id="image-input" type="file">
 
       <input type="submit" value="Upload">
     </form>
 
     <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.js"></script>
-    <script src="jquery.pan-crop.js"></script>
-    <script src="jquery.pan-crop-ui.js"></script>
+    <script src="../js/jquery.pan-crop.js"></script>
+    <script src="../js/jquery.pan-crop-ui.js"></script>
 
     <script>
     $('#image-input').panCropUi({
@@ -21,18 +21,6 @@
       height: 300,
       submitCropData: 'cropData'
     });
-
-    function getCropData() {
-      var srcAttr   = $('img').attr('src');
-      var chunks    = srcAttr.split(',');
-      var mime      = chunks[0].match(/:(.*?);/)[1];
-      var dataChunk = chunks[1];
-
-      return {
-        mime: mime,
-        data: dataChunk
-      };
-    }
     </script>
   </body>
 </html>
