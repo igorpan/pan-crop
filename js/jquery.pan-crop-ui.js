@@ -68,6 +68,7 @@
                                     if (settings.mousewheelScale) {
                                         var scale = $image.panCrop.crop.s;
                                         $image[0].addEventListener('mousewheel', function (e) {
+                                            e.preventDefault();
                                             var delta = settings.mousewheelSensitivity * (e.wheelDelta > 0 ? 1 : -1);
                                             $image.panCrop('scale', $image.panCrop.crop.s + delta);
                                         });
