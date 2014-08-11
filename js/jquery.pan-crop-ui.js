@@ -67,11 +67,13 @@
                                 onLoad: function () {
                                     if (settings.mousewheelScale) {
                                         var scale = $image.panCrop.crop.s;
-                                        $image[0].addEventListener('mousewheel', function (e) {
+                                        var scrollHandler = function (e) {
                                             e.preventDefault();
-                                            var delta = settings.mousewheelSensitivity * (e.wheelDelta > 0 ? 1 : -1);
+                                            var delta = settings.mousewheelSensitivity * ((e.wheelDelta || -e.detail) > 0 ? 1 : -1);
                                             $image.panCrop('scale', $image.panCrop.crop.s + delta);
-                                        });
+                                        };
+                                        $image[0].addEventListener('mousewheel', scrollHandler, false);
+                                        $image[0].addEventListener('DOMMouseScroll', scrollHandler, false);
                                     }
                                 }
                             });
