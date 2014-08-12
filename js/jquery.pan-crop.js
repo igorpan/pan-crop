@@ -7,24 +7,34 @@
         return value;
     };
 
-    $.fn.panCrop = function(method) {
+    var counter = 0;
+    var data = {};
 
+    $.fn.panCrop = function(method) {
         var methods = {
             init : function(options) {
                 this.panCrop.settings = $.extend({}, this.panCrop.defaults, options);
+
                 return this.each(function() {
                     var $element = $(this),
                         settings = $element.panCrop.settings;
 
                     loadOriginalImageSize($element[0].src, function (originalImageSize) {
-                        $element.panCrop.crop = {
+                        var id = counter;
+                        counter++;
+
+                        $element.data('panCropId', id);
+                        data[id] = {};
+
+                        data[id].settings = settings;
+                        data[id].crop = {
                             x: 0,
                             y: 0,
                             w: settings.width,
                             h: settings.height,
                             s: Math.max(Math.max(1, settings.width / originalImageSize.w), settings.height / originalImageSize.h)
                         };
-                        $element.panCrop.state = {
+                        data[id].state = {
                             originalSize: originalImageSize,
                             minScale: Math.max(settings.width / originalImageSize.w, settings.height / originalImageSize.h)
                         };
@@ -34,7 +44,7 @@
                         bindMouseDragEvents($element);
 
                         if (settings.onLoad) {
-                            settings.onLoad();
+                            settings.onLoad.call($element);
                         }
                     });
                 });
@@ -43,26 +53,30 @@
             destroy : function () {
                 var $element = $(this);
 
-                if ($element.panCrop.$wrapper) {
-                    for (var prop in $element.panCrop.cssBackup) {
-                        $element[0].style[prop] = $element.panCrop.cssBackup[prop];
+                if (getElementData($element)) {
+                    for (var prop in getElementData($element).cssBackup) {
+                        $element[0].style[prop] = getElementData($element).cssBackup[prop];
                     }
-                    $element.panCrop = null;
+                    delete getElementData($element).$wrapper;
                     $element.unwrap();
-                    $element.unbind('mousemove.pancrop mouseup.pancrop mousedown.pancrop');
+
+                    // Unbind events only for this instance of cropper
+                    var id = $element.data('panCropId');
+                    $element.unbind('mousemove.pancrop.' + id + ' mouseup.pancrop.' + id + ' mousedown.pancrop.' + id);
                 }
             },
 
             scale : function (scale) {
                 var $element = $(this);
-                var settings = $element.panCrop.settings;
-                var cropValues = $element.panCrop.crop;
-                var originalSize = $element.panCrop.state.originalSize;
+                var settings = getElementData($element).settings;
+                var cropValues = getElementData($element).crop;
+                var originalSize = getElementData($element).state.originalSize;
 
                 var oldWidth  = $element.width();
                 var oldHeight = $element.height();
 
-                cropValues.s = limitValue(scale, settings.width / originalSize.w, 1);
+                var scale = limitValue(limitValue(scale, settings.width / originalSize.w, 1), settings.height / originalSize.h, 1);
+                cropValues.s = scale;
                 syncViewToState($element, cropValues);
 
                 var widthRatio  = $element.width() / oldWidth;
@@ -79,7 +93,7 @@
             },
 
             getCropData : function () {
-                var data = $.extend({}, $(this).panCrop.crop);
+                var data = $.extend({}, getElementData($(this)).crop);
 
                 data.sx = parseInt(data.x / data.s);
                 data.sy = parseInt(data.y / data.s);
@@ -90,37 +104,41 @@
             }
         };
 
+        var getElementData = function ($element) {
+            return data[$element.data('panCropId')] || null;
+        };
+
         var createWrapper = function ($element) {
-            var settings = $element.panCrop.settings;
+            var settings = getElementData($element).settings;
             var $wrapper = $('<div/>')
                 .css({
                     width: settings.width,
                     height: settings.height,
                     overflow: 'hidden'
                 });
-            $element.panCrop.$wrapper = $wrapper;
+            getElementData($element).$wrapper = $wrapper;
             $element.wrap($wrapper);
         };
 
         var initializeCss = function ($element) {
-            $element.panCrop.cssBackup          = {};
-            $element.panCrop.cssBackup.position = $element[0].style.position;
-            $element.panCrop.cssBackup.top      = $element[0].style.top;
-            $element.panCrop.cssBackup.left     = $element[0].style.left;
+            getElementData($element).cssBackup          = {};
+            getElementData($element).cssBackup.position = $element[0].style.position;
+            getElementData($element).cssBackup.top      = $element[0].style.top;
+            getElementData($element).cssBackup.left     = $element[0].style.left;
 
             $element.css('position', 'relative');
 
-            syncViewToState($element, $element.panCrop.crop);
+            syncViewToState($element, getElementData($element).crop);
         };
 
         var bindMouseDragEvents = function ($element) {
-            var settings = $element.panCrop.settings;
+            var settings = getElementData($element).settings;
             var dragging = false;
             var startX   = 0;
             var startY   = 0;
+            var id       = $element.data('panCropId');
 
-            $element.off('mousedown.pancrop');
-            $element.on('mousedown.pancrop', function (e) {
+            $element.on('mousedown.pancrop.' + id, function (e) {
                 e.preventDefault();
 
                 dragging = true;
@@ -128,18 +146,17 @@
                 startY = e.pageY;
             });
 
-            $(document).off('mouseup.pancrop');
-            $(document).on('mouseup.pancrop', function () {
+            $(document).on('mouseup.pancrop.' + id, function () {
                 dragging = false;
             });
 
-            $element.on('mousemove.pancrop', function (e) {
+            $element.on('mousemove.pancrop.' + id, function (e) {
                 if (dragging) {
                     var deltaX = e.pageX - startX;
                     var deltaY = e.pageY - startY;
                     startX = e.pageX;
                     startY = e.pageY;
-                    var cropValues = $element.panCrop.crop;
+                    var cropValues = getElementData($element).crop;
                     
                     cropValues.x = - limitValue(- cropValues.x + deltaX, settings.width - $element.width(), 0);
                     cropValues.y = - limitValue(- cropValues.y + deltaY, settings.height - $element.height(), 0);
@@ -150,7 +167,7 @@
         };
 
         var syncViewToState = function ($element, stateObj) {
-            var originalSize = $element.panCrop.state.originalSize;
+            var originalSize = getElementData($element).state.originalSize;
             $element.width(originalSize.w * stateObj.s);
             $element.height(originalSize.h * stateObj.s);
             $element.css({
