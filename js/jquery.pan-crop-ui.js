@@ -1,4 +1,6 @@
 (function($) {
+    var counter = 0;
+    var allSettings = {};
 
     /**
      * Options
@@ -38,8 +40,9 @@
             init : function(options) {
                 this.panCropUi.settings = $.extend({}, this.panCropUi.defaults, options);
                 return this.each(function() {
+                    var id = counter;
                     var $input = $(this),
-                        settings = $input.panCropUi.settings;
+                        settings = allSettings[id] = $.extend({}, $input.panCropUi.settings);
 
                     if (!settings.$previewBox) {
                         $.error('$previewBox setting must be provided!');
@@ -47,7 +50,6 @@
                     if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
                         alert('The File APIs are not fully supported in this browser!');
                     }
-
                     var $previewBox = settings.$previewBox;
 
                     $input.change(function (e) {
@@ -60,7 +62,7 @@
 
                             $previewBox.empty().append(imgElement);
 
-                            var $image = $(imgElement);
+                            var $image = allSettings[id].$image = $(imgElement);
                             $image.panCrop({
                                 width: settings.width || $previewBox.width(),
                                 height: settings.height || $previewBox.height(),
@@ -82,19 +84,23 @@
                                 var $form = $input.closest('form');
                                 $form.off('submit.pancrop');
                                 $form.on('submit.pancrop', function (e) {
-                                    $form.append(
-                                        '<input name="' 
-                                        + settings.submitCropData 
-                                        + '" type="hidden" value=\'' 
-                                        + JSON.stringify($image.panCrop('getCropData')) 
-                                        + '\'>'
-                                    );
+                                    for (var id in allSettings) {
+                                        $form.append(
+                                            '<input name="' 
+                                            + allSettings[id].submitCropData 
+                                            + '" type="hidden" value=\'' 
+                                            + JSON.stringify(allSettings[id].$image.panCrop('getCropData')) 
+                                            + '\'>'
+                                        );
+                                    }
                                 });
                             }
                         };
 
                         fileReader.readAsDataURL(file);
                     });
+
+                    counter++;
                 });
             }
         };
